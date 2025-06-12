@@ -1,35 +1,53 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const AdminLogin = () => {
   const [formData, setFormData] = useState({
-    username: '',
+    email: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signIn, user, loading } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user && !loading) {
+      navigate('/admin/dashboard');
+    }
+  }, [user, loading, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Mock authentication - replace with real authentication
-    if (formData.username === 'admin' && formData.password === 'admin123') {
+    try {
+      const { error } = await signIn(formData.email, formData.password);
+      
+      if (error) {
+        toast({
+          title: "Login Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login Successful",
+          description: "Welcome to the admin dashboard!",
+        });
+        navigate('/admin/dashboard');
+      }
+    } catch (error: any) {
       toast({
-        title: "Login Successful",
-        description: "Welcome to the admin dashboard!",
-      });
-      navigate('/admin/dashboard');
-    } else {
-      toast({
-        title: "Login Failed",
-        description: "Invalid username or password.",
+        title: "Error",
+        description: error.message || "An unexpected error occurred.",
         variant: "destructive",
       });
     }
@@ -41,6 +59,14 @@ const AdminLogin = () => {
       [e.target.name]: e.target.value
     }));
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center px-4">
@@ -58,20 +84,20 @@ const AdminLogin = () => {
         <Card className="glass-card border-0 bg-white/5 backdrop-blur-lg p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="username" className="block text-white font-medium mb-2">
-                Username
+              <label htmlFor="email" className="block text-white font-medium mb-2">
+                Email
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <Input
-                  id="username"
-                  name="username"
-                  type="text"
+                  id="email"
+                  name="email"
+                  type="email"
                   required
-                  value={formData.username}
+                  value={formData.email}
                   onChange={handleChange}
                   className="pl-10 glass-input border-white/20 focus:border-blue-400"
-                  placeholder="Enter your username"
+                  placeholder="Enter your email"
                 />
               </div>
             </div>
@@ -115,9 +141,8 @@ const AdminLogin = () => {
 
           <div className="mt-6 p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
             <p className="text-sm text-blue-300 text-center">
-              <strong>Demo Credentials:</strong><br />
-              Username: admin<br />
-              Password: admin123
+              <strong>Admin Access:</strong><br />
+              Use your registered email and password to access the admin dashboard.
             </p>
           </div>
         </Card>

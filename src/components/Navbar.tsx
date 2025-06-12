@@ -1,13 +1,17 @@
 
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, User, Menu, X, Search } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, Search, LogOut, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const { user, signOut, loading } = useAuth();
+  const { toast } = useToast();
 
   const navLinks = [
     { to: '/', label: 'Home' },
@@ -17,6 +21,22 @@ const Navbar = () => {
   ];
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed Out",
+        description: "You have been successfully signed out.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass-nav border-b border-white/10">
@@ -60,16 +80,42 @@ const Navbar = () => {
 
           {/* Right Actions */}
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" className="text-white hover:text-blue-400 hover:bg-white/10">
-              <User className="h-5 w-5" />
-            </Button>
+            {/* User Authentication */}
+            {!loading && (
+              <>
+                {user ? (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-white text-sm hidden sm:block">
+                      Welcome, {user.email}
+                    </span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={handleSignOut}
+                      className="text-white hover:text-blue-400 hover:bg-white/10"
+                    >
+                      <LogOut className="h-5 w-5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Link to="/auth">
+                    <Button variant="ghost" size="sm" className="text-white hover:text-blue-400 hover:bg-white/10">
+                      <LogIn className="h-5 w-5 mr-2" />
+                      <span className="hidden sm:block">Sign In</span>
+                    </Button>
+                  </Link>
+                )}
+              </>
+            )}
             
-            <Button variant="ghost" size="sm" className="text-white hover:text-blue-400 hover:bg-white/10 relative">
-              <ShoppingCart className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center">
-                0
-              </span>
-            </Button>
+            <Link to="/cart">
+              <Button variant="ghost" size="sm" className="text-white hover:text-blue-400 hover:bg-white/10 relative">
+                <ShoppingCart className="h-5 w-5" />
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center">
+                  0
+                </span>
+              </Button>
+            </Link>
 
             {/* Mobile Menu Button */}
             <Button
@@ -107,6 +153,15 @@ const Navbar = () => {
                   className="glass-input border-white/20 focus:border-blue-400"
                 />
               </div>
+              {!loading && !user && (
+                <Link 
+                  to="/auth" 
+                  className="text-blue-400 hover:text-blue-300"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Sign In / Sign Up
+                </Link>
+              )}
             </div>
           </div>
         )}
